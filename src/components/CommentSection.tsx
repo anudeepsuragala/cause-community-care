@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Send } from 'lucide-react';
-import { toast } from '@/components/ui/sonner';
+import { toast } from 'sonner';
 
 interface Comment {
   id: string;

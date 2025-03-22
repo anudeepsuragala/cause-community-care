@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Upload, FileText, X, CheckCircle } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { toast } from '@/components/ui/sonner';
+import { toast } from 'sonner';
 
 const UploadPage = () => {
   const [selectedTab, setSelectedTab] = useState('ngo');
