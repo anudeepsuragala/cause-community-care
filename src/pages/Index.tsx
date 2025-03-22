@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import SocialPost, { PostProps } from '@/components/SocialPost';
 import { Pill } from '@/components/ui/badge';
@@ -50,7 +49,7 @@ const socialPosts: PostProps[] = [
       {
         id: 'c5',
         author: 'Sophia Lee',
-        text: 'How can we donate menstrual products to your organization? I'd like to contribute.',
+        text: 'How can we donate menstrual products to your organization? I\'d like to contribute.',
         date: 'Jun 2'
       }
     ]
@@ -66,13 +65,13 @@ const socialPosts: PostProps[] = [
       {
         id: 'c6',
         author: 'Rajesh Kumar',
-        text: 'The work you're doing to preserve indigenous languages while providing modern education is amazing. These communities have so much wisdom to share.',
+        text: 'The work you\'re doing to preserve indigenous languages while providing modern education is amazing. These communities have so much wisdom to share.',
         date: 'Apr 11'
       },
       {
         id: 'c7',
         author: 'Emma Thompson',
-        text: 'I'm a linguistic anthropologist and would love to volunteer with your language preservation programs.',
+        text: 'I\'m a linguistic anthropologist and would love to volunteer with your language preservation programs.',
         date: 'Apr 15'
       }
     ]
