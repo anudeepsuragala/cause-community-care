@@ -1,10 +1,15 @@
-
 import React, { useState, useEffect } from 'react';
 import SocialPost, { PostProps } from '@/components/SocialPost';
 import { Pill } from '@/components/ui/badge';
 import { Search, Video, FileText, MessageSquare, Presentation } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import ContentLibraryItem from '@/components/ContentLibraryItem';
+import ContentLibraryItem, { 
+  ContentItem, 
+  VideoItem, 
+  TedTalkItem, 
+  ArticleItem, 
+  PostItem 
+} from '@/components/ContentLibraryItem';
 
 const socialPosts: PostProps[] = [
   {
@@ -111,7 +116,7 @@ const contentLibrary = {
       date: 'Sep 5, 2023',
       category: 'tribal'
     }
-  ],
+  ] as VideoItem[],
   tedTalks: [
     {
       id: 't1',
@@ -140,7 +145,7 @@ const contentLibrary = {
       duration: '19:05',
       category: 'tribal'
     }
-  ],
+  ] as TedTalkItem[],
   articles: [
     {
       id: 'a1',
@@ -169,7 +174,7 @@ const contentLibrary = {
       date: 'Sep 15, 2023',
       category: 'tribal'
     }
-  ],
+  ] as ArticleItem[],
   posts: [
     {
       id: 'p1',
@@ -198,15 +203,17 @@ const contentLibrary = {
       excerpt: 'A new education center equipped with modern facilities has been opened in the remote tribal region of...',
       category: 'tribal'
     }
-  ]
+  ] as PostItem[]
 };
+
+type ContentTypes = 'videos' | 'tedTalks' | 'articles' | 'posts';
 
 const Index = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredPosts, setFilteredPosts] = useState<PostProps[]>(socialPosts);
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
-  const [activeContentTab, setActiveContentTab] = useState('videos');
-  const [filteredContent, setFilteredContent] = useState(contentLibrary.videos);
+  const [activeContentTab, setActiveContentTab] = useState<ContentTypes>('videos');
+  const [filteredContent, setFilteredContent] = useState<ContentItem[]>(contentLibrary.videos);
 
   useEffect(() => {
     document.title = 'Social Cause - Feed';
@@ -231,7 +238,7 @@ const Index = () => {
 
     // Filter content library based on search term and active filter
     const contentType = activeContentTab as keyof typeof contentLibrary;
-    let filteredContentItems = contentLibrary[contentType];
+    let filteredContentItems = [...contentLibrary[contentType]];
     
     if (searchTerm) {
       filteredContentItems = filteredContentItems.filter(item => 
@@ -253,7 +260,7 @@ const Index = () => {
   };
 
   const handleContentTabChange = (value: string) => {
-    setActiveContentTab(value);
+    setActiveContentTab(value as ContentTypes);
   };
 
   return (
@@ -327,27 +334,25 @@ const Index = () => {
               </TabsTrigger>
             </TabsList>
             
-            {Object.keys(contentLibrary).map((contentType) => (
-              <TabsContent key={contentType} value={contentType}>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {filteredContent.length > 0 ? (
-                    filteredContent.map((item) => (
-                      <ContentLibraryItem 
-                        key={item.id} 
-                        item={item} 
-                        type={activeContentTab}
-                      />
-                    ))
-                  ) : (
-                    <div className="col-span-full text-center py-12">
-                      <p className="text-muted-foreground">
-                        No {activeContentTab} found matching your criteria.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </TabsContent>
-            ))}
+            <TabsContent value={activeContentTab}>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredContent.length > 0 ? (
+                  filteredContent.map((item) => (
+                    <ContentLibraryItem 
+                      key={item.id} 
+                      item={item} 
+                      type={activeContentTab}
+                    />
+                  ))
+                ) : (
+                  <div className="col-span-full text-center py-12">
+                    <p className="text-muted-foreground">
+                      No {activeContentTab} found matching your criteria.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </TabsContent>
           </Tabs>
         </div>
 

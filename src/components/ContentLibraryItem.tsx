@@ -5,7 +5,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Video, Clock, FileText, MessageSquare, Presentation, User } from 'lucide-react';
 import ActionButton from '@/components/ActionButton';
 
-interface BaseContentItem {
+// Base interface for all content types
+export interface BaseContentItem {
   id: string;
   title: string;
   thumbnail: string;
@@ -13,31 +14,50 @@ interface BaseContentItem {
   category: string;
 }
 
-interface VideoItem extends BaseContentItem {
+// Specific content type interfaces
+export interface VideoItem extends BaseContentItem {
   duration: string;
   author: string;
 }
 
-interface TedTalkItem extends BaseContentItem {
+export interface TedTalkItem extends BaseContentItem {
   speaker: string;
   duration: string;
 }
 
-interface ArticleItem extends BaseContentItem {
+export interface ArticleItem extends BaseContentItem {
   author: string;
   readTime: string;
 }
 
-interface PostItem extends BaseContentItem {
+export interface PostItem extends BaseContentItem {
   author: string;
   excerpt: string;
 }
 
-type ContentItem = VideoItem | TedTalkItem | ArticleItem | PostItem;
+// Union type for all content types
+export type ContentItem = VideoItem | TedTalkItem | ArticleItem | PostItem;
+
+// Type guard functions to help TypeScript determine the correct type
+export function isVideoItem(item: ContentItem): item is VideoItem {
+  return 'duration' in item && 'author' in item && !('speaker' in item);
+}
+
+export function isTedTalkItem(item: ContentItem): item is TedTalkItem {
+  return 'duration' in item && 'speaker' in item;
+}
+
+export function isArticleItem(item: ContentItem): item is ArticleItem {
+  return 'readTime' in item && 'author' in item;
+}
+
+export function isPostItem(item: ContentItem): item is PostItem {
+  return 'excerpt' in item && 'author' in item;
+}
 
 interface ContentLibraryItemProps {
   item: ContentItem;
-  type: string;
+  type: 'videos' | 'tedTalks' | 'articles' | 'posts';
   className?: string;
 }
 
@@ -58,61 +78,59 @@ const ContentLibraryItem = ({ item, type, className }: ContentLibraryItemProps) 
   };
 
   const renderMetadata = () => {
-    switch (type) {
-      case 'videos':
-        return (
-          <>
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <User className="w-3 h-3" />
-              <span>{(item as VideoItem).author}</span>
-            </div>
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Clock className="w-3 h-3" />
-              <span>{(item as VideoItem).duration}</span>
-            </div>
-          </>
-        );
-      case 'tedTalks':
-        return (
-          <>
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <User className="w-3 h-3" />
-              <span>{(item as TedTalkItem).speaker}</span>
-            </div>
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Clock className="w-3 h-3" />
-              <span>{(item as TedTalkItem).duration}</span>
-            </div>
-          </>
-        );
-      case 'articles':
-        return (
-          <>
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <User className="w-3 h-3" />
-              <span>{(item as ArticleItem).author}</span>
-            </div>
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Clock className="w-3 h-3" />
-              <span>{(item as ArticleItem).readTime}</span>
-            </div>
-          </>
-        );
-      case 'posts':
-        return (
-          <>
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <User className="w-3 h-3" />
-              <span>{(item as PostItem).author}</span>
-            </div>
-            <p className="mt-2 text-sm text-muted-foreground line-clamp-2">
-              {(item as PostItem).excerpt}
-            </p>
-          </>
-        );
-      default:
-        return null;
+    if (isVideoItem(item)) {
+      return (
+        <>
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <User className="w-3 h-3" />
+            <span>{item.author}</span>
+          </div>
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <Clock className="w-3 h-3" />
+            <span>{item.duration}</span>
+          </div>
+        </>
+      );
+    } else if (isTedTalkItem(item)) {
+      return (
+        <>
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <User className="w-3 h-3" />
+            <span>{item.speaker}</span>
+          </div>
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <Clock className="w-3 h-3" />
+            <span>{item.duration}</span>
+          </div>
+        </>
+      );
+    } else if (isArticleItem(item)) {
+      return (
+        <>
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <User className="w-3 h-3" />
+            <span>{item.author}</span>
+          </div>
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <Clock className="w-3 h-3" />
+            <span>{item.readTime}</span>
+          </div>
+        </>
+      );
+    } else if (isPostItem(item)) {
+      return (
+        <>
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <User className="w-3 h-3" />
+            <span>{item.author}</span>
+          </div>
+          <p className="mt-2 text-sm text-muted-foreground line-clamp-2">
+            {item.excerpt}
+          </p>
+        </>
+      );
     }
+    return null;
   };
 
   return (
