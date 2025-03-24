@@ -2,11 +2,14 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { cn } from "@/lib/utils";
-import { MessageSquare, BarChart3, Upload, Home } from 'lucide-react';
+import { MessageSquare, BarChart3, Upload, Home, LogOut } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { toast } from 'sonner';
 
 const Header = () => {
   const [scrolled, setScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { currentUser, logout } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -19,6 +22,16 @@ const Header = () => {
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      toast.success("Successfully logged out!");
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to log out. Please try again.");
+    }
   };
 
   const navItems = [
@@ -44,20 +57,45 @@ const Header = () => {
         </NavLink>
 
         {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center space-x-1">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={({ isActive }) => 
-                cn("nav-link", isActive && "nav-link-active")
-              }
-              end
-            >
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
+        <div className="hidden md:flex items-center space-x-4">
+          <nav className="flex items-center space-x-1 mr-4">
+            {navItems.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={({ isActive }) => 
+                  cn("nav-link", isActive && "nav-link-active")
+                }
+                end
+              >
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
+          
+          {currentUser && (
+            <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center overflow-hidden">
+                  {currentUser.photoURL ? (
+                    <img src={currentUser.photoURL} alt={currentUser.displayName || "User"} className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-muted-foreground text-sm">{currentUser.displayName?.charAt(0) || "U"}</span>
+                  )}
+                </div>
+                <span className="text-sm font-medium hidden lg:inline">{currentUser.displayName || currentUser.email}</span>
+              </div>
+              
+              <button 
+                onClick={handleLogout}
+                className="p-2 hover:bg-muted rounded-full transition-colors"
+                aria-label="Logout"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+        </div>
 
         {/* Mobile Menu Button */}
         <button 
@@ -88,7 +126,7 @@ const Header = () => {
       {/* Mobile Navigation */}
       <div className={cn(
         "md:hidden absolute w-full bg-white/95 backdrop-blur-sm shadow-lg transition-all duration-300 ease-spring overflow-hidden",
-        isMobileMenuOpen ? "max-h-60 opacity-100 border-b" : "max-h-0 opacity-0"
+        isMobileMenuOpen ? "max-h-80 opacity-100 border-b" : "max-h-0 opacity-0"
       )}>
         <nav className="container-custom py-4 flex flex-col space-y-2">
           {navItems.map((item) => (
@@ -108,6 +146,16 @@ const Header = () => {
               {item.label}
             </NavLink>
           ))}
+          
+          {currentUser && (
+            <button
+              onClick={handleLogout}
+              className="flex items-center px-4 py-2 rounded-md text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              Logout
+            </button>
+          )}
         </nav>
       </div>
     </header>
