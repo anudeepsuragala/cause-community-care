@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { 
   GoogleAuthProvider, 
@@ -13,6 +12,7 @@ import {
   ConfirmationResult
 } from 'firebase/auth';
 import { initializeApp } from 'firebase/app';
+import { getFirestore, collection, onSnapshot, doc, setDoc } from 'firebase/firestore';
 
 // Replace with your Firebase config
 const firebaseConfig = {
@@ -27,11 +27,23 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+const firestore = getFirestore(app);
+
+export interface ChatUser {
+  uid: string;
+  displayName: string | null;
+  email: string | null;
+  photoURL: string | null;
+  phoneNumber: string | null;
+  lastActive: Date;
+  isOnline: boolean;
+}
 
 type AuthContextType = {
   currentUser: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  allUsers: ChatUser[];
   signInWithGoogle: () => Promise<void>;
   signInWithPhone: (phoneNumber: string) => Promise<ConfirmationResult>;
   confirmPhoneCode: (verificationId: ConfirmationResult, code: string) => Promise<void>;
@@ -52,15 +64,63 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [recaptchaVerifier, setRecaptchaVerifier] = useState<RecaptchaVerifier | null>(null);
+  const [allUsers, setAllUsers] = useState<ChatUser[]>([]);
 
+  // Listen for auth state changes
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
+      
+      // If user is logged in, update their status in Firestore
+      if (user) {
+        const userRef = doc(firestore, 'users', user.uid);
+        await setDoc(userRef, {
+          uid: user.uid,
+          displayName: user.displayName,
+          email: user.email,
+          photoURL: user.photoURL,
+          phoneNumber: user.phoneNumber,
+          lastActive: new Date(),
+          isOnline: true
+        }, { merge: true });
+      }
+      
       setIsLoading(false);
     });
 
     return unsubscribe;
   }, []);
+
+  // Listen for all users
+  useEffect(() => {
+    if (!currentUser) return;
+    
+    const unsubscribe = onSnapshot(collection(firestore, 'users'), (snapshot) => {
+      const users: ChatUser[] = [];
+      snapshot.forEach((doc) => {
+        const userData = doc.data() as ChatUser;
+        // Convert Firestore timestamp to Date if needed
+        userData.lastActive = (userData.lastActive as any)?.toDate() || new Date();
+        users.push(userData);
+      });
+      setAllUsers(users);
+    });
+
+    return unsubscribe;
+  }, [currentUser]);
+
+  // Set user offline when they leave
+  useEffect(() => {
+    return () => {
+      if (currentUser) {
+        const userRef = doc(firestore, 'users', currentUser.uid);
+        setDoc(userRef, {
+          isOnline: false,
+          lastActive: new Date()
+        }, { merge: true });
+      }
+    };
+  }, [currentUser]);
 
   const signInWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
@@ -128,6 +188,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     currentUser,
     isLoading,
     isAuthenticated: !!currentUser,
+    allUsers,
     signInWithGoogle,
     signInWithPhone,
     confirmPhoneCode,

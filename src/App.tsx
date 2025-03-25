@@ -10,6 +10,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import Header from "./components/Header";
 import Index from "./pages/Index";
 import Chats from "./pages/Chats";
+import Chat from "./pages/Chat"; // Add this import
 import Actions from "./pages/Actions";
 import Upload from "./pages/Upload";
 import Login from "./pages/Login";
@@ -53,6 +54,16 @@ const App = () => (
                   <Header />
                   <PageTransition>
                     <Chats />
+                  </PageTransition>
+                </>
+              </ProtectedRoute>
+            } />
+            <Route path="/chat" element={
+              <ProtectedRoute>
+                <>
+                  <Header />
+                  <PageTransition>
+                    <Chat />
                   </PageTransition>
                 </>
               </ProtectedRoute>
