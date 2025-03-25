@@ -6,7 +6,11 @@ import {
   signOut, 
   onAuthStateChanged,
   User,
-  getAuth
+  getAuth,
+  RecaptchaVerifier,
+  PhoneAuthProvider,
+  signInWithPhoneNumber,
+  ConfirmationResult
 } from 'firebase/auth';
 import { initializeApp } from 'firebase/app';
 
@@ -29,6 +33,8 @@ type AuthContextType = {
   isLoading: boolean;
   isAuthenticated: boolean;
   signInWithGoogle: () => Promise<void>;
+  signInWithPhone: (phoneNumber: string) => Promise<ConfirmationResult>;
+  confirmPhoneCode: (verificationId: ConfirmationResult, code: string) => Promise<void>;
   logout: () => Promise<void>;
 };
 
@@ -45,6 +51,7 @@ export const useAuth = () => {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [recaptchaVerifier, setRecaptchaVerifier] = useState<RecaptchaVerifier | null>(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -65,6 +72,49 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const signInWithPhone = async (phoneNumber: string) => {
+    try {
+      // Create a new RecaptchaVerifier instance if one doesn't exist
+      if (!recaptchaVerifier) {
+        const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+          size: 'normal',
+          callback: () => {
+            // reCAPTCHA solved, allow signInWithPhoneNumber.
+            console.log('Recaptcha verified');
+          },
+          'expired-callback': () => {
+            // Response expired. Ask user to solve reCAPTCHA again.
+            console.log('Recaptcha expired');
+          }
+        });
+        setRecaptchaVerifier(verifier);
+        
+        // Render the reCAPTCHA widget
+        await verifier.render();
+        
+        // Send verification code
+        const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, verifier);
+        return confirmationResult;
+      } else {
+        // If recaptchaVerifier already exists, use it
+        const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier);
+        return confirmationResult;
+      }
+    } catch (error) {
+      console.error("Error signing in with phone:", error);
+      throw error;
+    }
+  };
+
+  const confirmPhoneCode = async (confirmationResult: ConfirmationResult, code: string) => {
+    try {
+      await confirmationResult.confirm(code);
+    } catch (error) {
+      console.error("Error confirming code:", error);
+      throw error;
+    }
+  };
+
   const logout = async () => {
     try {
       await signOut(auth);
@@ -79,6 +129,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isLoading,
     isAuthenticated: !!currentUser,
     signInWithGoogle,
+    signInWithPhone,
+    confirmPhoneCode,
     logout,
   };
 
