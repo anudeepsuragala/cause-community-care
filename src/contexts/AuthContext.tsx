@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { 
   GoogleAuthProvider, 
@@ -6,10 +7,9 @@ import {
   onAuthStateChanged,
   User,
   getAuth,
-  RecaptchaVerifier,
-  PhoneAuthProvider,
-  signInWithPhoneNumber,
-  ConfirmationResult
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  updateProfile
 } from 'firebase/auth';
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, onSnapshot, doc, setDoc } from 'firebase/firestore';
@@ -34,7 +34,6 @@ export interface ChatUser {
   displayName: string | null;
   email: string | null;
   photoURL: string | null;
-  phoneNumber: string | null;
   lastActive: Date;
   isOnline: boolean;
 }
@@ -45,8 +44,8 @@ type AuthContextType = {
   isAuthenticated: boolean;
   allUsers: ChatUser[];
   signInWithGoogle: () => Promise<void>;
-  signInWithPhone: (phoneNumber: string) => Promise<ConfirmationResult>;
-  confirmPhoneCode: (verificationId: ConfirmationResult, code: string) => Promise<void>;
+  signInWithEmail: (email: string, password: string) => Promise<void>;
+  signUpWithEmail: (email: string, password: string, displayName: string) => Promise<void>;
   logout: () => Promise<void>;
 };
 
@@ -63,7 +62,6 @@ export const useAuth = () => {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [recaptchaVerifier, setRecaptchaVerifier] = useState<RecaptchaVerifier | null>(null);
   const [allUsers, setAllUsers] = useState<ChatUser[]>([]);
 
   // Listen for auth state changes
@@ -79,7 +77,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           displayName: user.displayName,
           email: user.email,
           photoURL: user.photoURL,
-          phoneNumber: user.phoneNumber,
           lastActive: new Date(),
           isOnline: true
         }, { merge: true });
@@ -132,45 +129,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signInWithPhone = async (phoneNumber: string) => {
+  const signInWithEmail = async (email: string, password: string) => {
     try {
-      // Create a new RecaptchaVerifier instance if one doesn't exist
-      if (!recaptchaVerifier) {
-        const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-          size: 'normal',
-          callback: () => {
-            // reCAPTCHA solved, allow signInWithPhoneNumber.
-            console.log('Recaptcha verified');
-          },
-          'expired-callback': () => {
-            // Response expired. Ask user to solve reCAPTCHA again.
-            console.log('Recaptcha expired');
-          }
-        });
-        setRecaptchaVerifier(verifier);
-        
-        // Render the reCAPTCHA widget
-        await verifier.render();
-        
-        // Send verification code
-        const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, verifier);
-        return confirmationResult;
-      } else {
-        // If recaptchaVerifier already exists, use it
-        const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier);
-        return confirmationResult;
-      }
+      await signInWithEmailAndPassword(auth, email, password);
     } catch (error) {
-      console.error("Error signing in with phone:", error);
+      console.error("Error signing in with email:", error);
       throw error;
     }
   };
 
-  const confirmPhoneCode = async (confirmationResult: ConfirmationResult, code: string) => {
+  const signUpWithEmail = async (email: string, password: string, displayName: string) => {
     try {
-      await confirmationResult.confirm(code);
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      // Update the user's profile with the displayName
+      await updateProfile(userCredential.user, {
+        displayName: displayName
+      });
+      
+      // Create user document in Firestore
+      const userRef = doc(firestore, 'users', userCredential.user.uid);
+      await setDoc(userRef, {
+        uid: userCredential.user.uid,
+        displayName: displayName,
+        email: userCredential.user.email,
+        photoURL: null,
+        lastActive: new Date(),
+        isOnline: true
+      });
+      
     } catch (error) {
-      console.error("Error confirming code:", error);
+      console.error("Error signing up with email:", error);
       throw error;
     }
   };
@@ -190,8 +178,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isAuthenticated: !!currentUser,
     allUsers,
     signInWithGoogle,
-    signInWithPhone,
-    confirmPhoneCode,
+    signInWithEmail,
+    signUpWithEmail,
     logout,
   };
 
